@@ -15,9 +15,31 @@ const app = express();
 // Database se connect karo
 connectDB();
 
+const parseOrigins = (...values) =>
+  values
+    .filter(Boolean)
+    .flatMap((value) => value.split(','))
+    .map((origin) => origin.trim())
+    .map((origin) => origin.replace(/\/$/, ''))
+    .filter(Boolean);
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  ...parseOrigins(process.env.CLIENT_URL, process.env.FRONTEND_URL, process.env.CORS_ORIGIN),
+];
+
 // Middlewares (Bich mein kaam karne wale functions)
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://YOUR_VERCEL_URL.vercel.app'],
+  origin(origin, callback) {
+    const requestOrigin = origin?.replace(/\/$/, '');
+
+    if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${requestOrigin}`));
+  },
   credentials: true,
 }));
 app.use(express.json()); // JSON data parse karo
